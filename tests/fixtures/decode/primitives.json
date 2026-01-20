@@ -1,0 +1,97 @@
+{
+  "version": "3.0",
+  "category": "decode",
+  "description": "Primitive value decoding tests",
+  "tests": [
+    {
+      "name": "decode null",
+      "input": "null",
+      "expected": null,
+      "specSection": "§4"
+    },
+    {
+      "name": "decode true",
+      "input": "true",
+      "expected": true,
+      "specSection": "§4"
+    },
+    {
+      "name": "decode false",
+      "input": "false",
+      "expected": false,
+      "specSection": "§4"
+    },
+    {
+      "name": "decode positive integer",
+      "input": "42",
+      "expected": 42,
+      "specSection": "§4"
+    },
+    {
+      "name": "decode negative integer",
+      "input": "-123",
+      "expected": -123,
+      "specSection": "§4"
+    },
+    {
+      "name": "decode zero",
+      "input": "0",
+      "expected": 0,
+      "specSection": "§4"
+    },
+    {
+      "name": "decode simple string",
+      "input": "hello",
+      "expected": "hello",
+      "specSection": "§4"
+    },
+    {
+      "name": "decode quoted string",
+      "input": "\"hello\"",
+      "expected": "hello",
+      "specSection": "§4"
+    },
+    {
+      "name": "decode quoted reserved word",
+      "input": "\"true\"",
+      "expected": "true",
+      "specSection": "§4"
+    },
+    {
+      "name": "decode quoted number",
+      "input": "\"42\"",
+      "expected": "42",
+      "specSection": "§4"
+    },
+    {
+      "name": "decode empty string",
+      "input": "\"\"",
+      "expected": "",
+      "specSection": "§4"
+    },
+    {
+      "name": "decode escaped quote",
+      "input": "\"say \\\"hi\\\"\"",
+      "expected": "say \"hi\"",
+      "specSection": "§7.1"
+    },
+    {
+      "name": "decode escaped backslash",
+      "input": "\"path\\\\to\\\\file\"",
+      "expected": "path\\to\\file",
+      "specSection": "§7.1"
+    },
+    {
+      "name": "decode escaped newline",
+      "input": "\"line1\\nline2\"",
+      "expected": "line1\nline2",
+      "specSection": "§7.1"
+    },
+    {
+      "name": "decode empty document",
+      "input": "",
+      "expected": {},
+      "specSection": "§5"
+    }
+  ]
+}

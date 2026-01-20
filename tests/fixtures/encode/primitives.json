@@ -1,0 +1,127 @@
+{
+  "version": "3.0",
+  "category": "encode",
+  "description": "Primitive value encoding tests",
+  "tests": [
+    {
+      "name": "encode null",
+      "input": null,
+      "expected": "null",
+      "specSection": "§2"
+    },
+    {
+      "name": "encode true",
+      "input": true,
+      "expected": "true",
+      "specSection": "§2"
+    },
+    {
+      "name": "encode false",
+      "input": false,
+      "expected": "false",
+      "specSection": "§2"
+    },
+    {
+      "name": "encode positive integer",
+      "input": 42,
+      "expected": "42",
+      "specSection": "§2"
+    },
+    {
+      "name": "encode negative integer",
+      "input": -123,
+      "expected": "-123",
+      "specSection": "§2"
+    },
+    {
+      "name": "encode zero",
+      "input": 0,
+      "expected": "0",
+      "specSection": "§2"
+    },
+    {
+      "name": "encode simple string",
+      "input": "hello",
+      "expected": "hello",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode string with space",
+      "input": "hello world",
+      "expected": "hello world",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode reserved word true as string",
+      "input": "true",
+      "expected": "\"true\"",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode reserved word false as string",
+      "input": "false",
+      "expected": "\"false\"",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode reserved word null as string",
+      "input": "null",
+      "expected": "\"null\"",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode numeric string",
+      "input": "42",
+      "expected": "\"42\"",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode empty string",
+      "input": "",
+      "expected": "\"\"",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode string with colon",
+      "input": "key:value",
+      "expected": "\"key:value\"",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode string with quote",
+      "input": "say \"hi\"",
+      "expected": "\"say \\\"hi\\\"\"",
+      "specSection": "§7.1"
+    },
+    {
+      "name": "encode string with backslash",
+      "input": "path\\to\\file",
+      "expected": "\"path\\\\to\\\\file\"",
+      "specSection": "§7.1"
+    },
+    {
+      "name": "encode string with newline",
+      "input": "line1\nline2",
+      "expected": "\"line1\\nline2\"",
+      "specSection": "§7.1"
+    },
+    {
+      "name": "encode string starting with hyphen",
+      "input": "-value",
+      "expected": "\"-value\"",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode unicode string",
+      "input": "Hello 世界",
+      "expected": "Hello 世界",
+      "specSection": "§7.2"
+    },
+    {
+      "name": "encode emoji string",
+      "input": "🎉🎊🎈",
+      "expected": "🎉🎊🎈",
+      "specSection": "§7.2"
+    }
+  ]
+}
