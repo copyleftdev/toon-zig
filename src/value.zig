@@ -213,7 +213,7 @@ pub const JsonValue = union(enum) {
 
     /// Compare two values for equality.
     pub fn eql(self: JsonValue, other: JsonValue) bool {
-        const Tag = @typeInfo(JsonValue).@"union".tag_type.?;
+        const Tag = @typeInfo(JsonValue).Union.tag_type.?;
         const self_tag: Tag = self;
         const other_tag: Tag = other;
 

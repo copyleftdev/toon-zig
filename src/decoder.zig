@@ -108,13 +108,16 @@ const Decoder = struct {
             }
         }
 
+        // Cap spaces at content length (handles whitespace-only lines)
+        const actual_spaces = @min(spaces, content.len);
+
         // Check indentation is valid multiple
-        if (strict and spaces % indent_size != 0) {
+        if (strict and actual_spaces % indent_size != 0) {
             return ToonError.InvalidIndentation;
         }
 
-        const depth = spaces / indent_size;
-        const trimmed = std.mem.trimRight(u8, content[spaces..], " \t");
+        const depth = actual_spaces / indent_size;
+        const trimmed = std.mem.trimRight(u8, content[actual_spaces..], " \t");
         const is_blank = trimmed.len == 0;
 
         return .{
@@ -200,7 +203,10 @@ const Decoder = struct {
 
         if (header.fields) |fields| {
             // Tabular array
-            defer self.allocator.free(fields);
+            defer {
+                for (fields) |f| self.allocator.free(f);
+                self.allocator.free(fields);
+            }
             try self.decodeTabularRows(&arr, header.length, fields, line.depth);
         } else if (header.inline_values) |inline_vals| {
             // Inline primitive array
@@ -238,19 +244,25 @@ const Decoder = struct {
             const kv = try self.parseKeyValue(line.content);
             self.advance();
 
-            const key_copy = self.allocator.dupe(u8, kv.key) catch return ToonError.OutOfMemory;
+            // kv.key is already allocated by parseKey, use it directly
+            const key_copy = kv.key;
             errdefer self.allocator.free(key_copy);
 
             if (kv.is_array_header) {
                 // Array field
                 const header = try self.parseArrayHeader(line.content);
+                // header.key is allocated but we use key_copy instead, so free it
+                if (header.key) |hkey| self.allocator.free(hkey);
                 self.active_delimiter = header.delimiter;
 
                 var arr = JsonValue.initArray(self.allocator);
                 errdefer arr.deinit(self.allocator);
 
                 if (header.fields) |fields| {
-                    defer self.allocator.free(fields);
+                    defer {
+                        for (fields) |f| self.allocator.free(f);
+                        self.allocator.free(fields);
+                    }
                     try self.decodeTabularRows(&arr, header.length, fields, line.depth);
                 } else if (header.inline_values) |inline_vals| {
                     try self.decodeInlineValues(&arr, inline_vals);
@@ -487,7 +499,10 @@ const Decoder = struct {
             errdefer arr.deinit(self.allocator);
 
             if (header.fields) |fields| {
-                defer self.allocator.free(fields);
+                defer {
+                    for (fields) |f| self.allocator.free(f);
+                    self.allocator.free(fields);
+                }
                 // Tabular rows at depth +2
                 try self.decodeTabularRowsAtDepth(&arr, header.length, fields, hyphen_depth + 2);
             } else if (header.inline_values) |inline_vals| {
@@ -531,7 +546,10 @@ const Decoder = struct {
                 errdefer arr.deinit(self.allocator);
 
                 if (header.fields) |fields| {
-                    defer self.allocator.free(fields);
+                    defer {
+                        for (fields) |f| self.allocator.free(f);
+                        self.allocator.free(fields);
+                    }
                     try self.decodeTabularRows(&arr, header.length, fields, line.depth);
                 } else if (header.inline_values) |inline_vals| {
                     try self.decodeInlineValues(&arr, inline_vals);
@@ -726,7 +744,7 @@ const Decoder = struct {
         };
     }
 
-    /// Parse a key (quoted or unquoted).
+    /// Parse a key (quoted or unquoted). Always returns allocated memory.
     fn parseKey(self: *Decoder, raw: []const u8) ToonError![]const u8 {
         if (raw.len >= 2 and raw[0] == '"' and raw[raw.len - 1] == '"') {
             // Quoted key - unescape
@@ -734,7 +752,8 @@ const Decoder = struct {
             const unescaped = try escape.unescapeString(self.allocator, inner);
             return unescaped;
         }
-        return raw;
+        // Always allocate to ensure consistent ownership
+        return self.allocator.dupe(u8, raw) catch return ToonError.OutOfMemory;
     }
 
     /// Parse key-value or key-only line.
