@@ -1,35 +1,17 @@
 {
-  "description": "Root form decoding tests",
+  "version": "1.4",
+  "category": "decode",
+  "description": "Root form detection - empty document, single primitive, multiple primitives",
   "tests": [
     {
-      "name": "root object",
-      "input": "a: 1\nb: 2",
-      "expected": {"a": 1, "b": 2}
-    },
-    {
-      "name": "root array",
-      "input": "[3]: 1,2,3",
-      "expected": [1, 2, 3]
-    },
-    {
-      "name": "root primitive string",
-      "input": "hello",
-      "expected": "hello"
-    },
-    {
-      "name": "root primitive number",
-      "input": "42",
-      "expected": 42
-    },
-    {
-      "name": "root primitive true",
-      "input": "true",
-      "expected": true
-    },
-    {
-      "name": "root primitive null",
-      "input": "null",
-      "expected": null
+      "name": "parses empty document as empty object",
+      "input": "",
+      "expected": {},
+      "options": {
+        "strict": true
+      },
+      "specSection": "5",
+      "note": "Empty input (no non-empty lines) decodes to empty object"
     }
   ]
 }

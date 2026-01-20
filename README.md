@@ -4,7 +4,7 @@
 
 **Zig implementation of TOON (Token-Oriented Object Notation)**
 
-[![Zig](https://img.shields.io/badge/Zig-0.13%2B-f7a41d?style=flat&logo=zig&logoColor=white)](https://ziglang.org/)
+[![Zig](https://img.shields.io/badge/Zig-0.14%2B-f7a41d?style=flat&logo=zig&logoColor=white)](https://ziglang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TOON Spec](https://img.shields.io/badge/TOON-v3.0-green.svg)](https://github.com/toon-format/spec)
 
