@@ -1,14 +1,3 @@
-//! Chaos Testing Harness for TOON
-//!
-//! Property-based/fuzz testing that generates random JSON structures
-//! and validates round-trip encoding/decoding. Designed to find edge cases
-//! in real-world chaotic data scenarios.
-//!
-//! Features:
-//! - Seed-based reproducibility for debugging failures
-//! - Chaos multiplier for complexity scaling
-//! - Automatic failure capture with reproduction info
-//! - Shrinking to find minimal failing cases
 
 const std = @import("std");
 const toon = @import("toon");
@@ -18,25 +7,15 @@ const JsonObject = toon.JsonObject;
 
 const testing = std.testing;
 
-/// Chaos configuration for test generation
 pub const ChaosConfig = struct {
-    /// Random seed for reproducibility
     seed: u64 = 0,
-    /// Maximum depth of nested structures
     max_depth: u8 = 8,
-    /// Maximum number of keys in an object
     max_object_width: u16 = 20,
-    /// Maximum number of elements in an array
     max_array_length: u16 = 50,
-    /// Maximum string length
     max_string_length: u16 = 500,
-    /// Probability of generating special unicode (0-100)
     unicode_probability: u8 = 30,
-    /// Probability of generating edge case numbers (0-100)
     edge_number_probability: u8 = 25,
-    /// Chaos multiplier (1.0 = normal, 2.0 = double complexity)
     chaos_multiplier: f32 = 1.0,
-    /// Number of iterations to run
     iterations: u32 = 1000,
 
     pub fn withChaos(self: ChaosConfig, multiplier: f32) ChaosConfig {
@@ -50,7 +29,6 @@ pub const ChaosConfig = struct {
     }
 };
 
-/// Test result with failure information
 pub const ChaosResult = struct {
     passed: u32 = 0,
     failed: u32 = 0,
@@ -108,7 +86,6 @@ pub const ChaosResult = struct {
     }
 };
 
-/// Information about a test failure
 pub const ChaosFailure = struct {
     seed: u64,
     iteration: u32,
@@ -148,7 +125,6 @@ pub const ChaosFailure = struct {
     }
 };
 
-/// Random JSON value generator
 pub const ChaosGenerator = struct {
     allocator: std.mem.Allocator,
     rng: std.Random,
@@ -172,7 +148,6 @@ pub const ChaosGenerator = struct {
         };
     }
 
-    /// Generate a random JSON value
     pub fn generate(self: *ChaosGenerator) GeneratorError!JsonValue {
         return self.generateValue();
     }
@@ -213,7 +188,7 @@ pub const ChaosGenerator = struct {
         const edge_roll = self.rng.intRangeAtMost(u8, 0, 100);
 
         if (edge_roll < self.config.edge_number_probability) {
-            // Edge case numbers
+
             const edge_cases = [_]i64{
                 0,
                 0, // -0 is same as 0 for integers
@@ -243,7 +218,7 @@ pub const ChaosGenerator = struct {
             // Float
             const float_roll = self.rng.intRangeAtMost(u8, 0, 100);
             if (float_roll < 10) {
-                // Edge case floats
+
                 const edge_floats = [_]f64{
                     0.0,
                     -0.0,
@@ -289,9 +264,9 @@ pub const ChaosGenerator = struct {
                 try str.append(escape_chars[idx]);
                 i += 1;
             } else if (char_type < 5 + self.config.unicode_probability) {
-                // Unicode characters (multi-byte)
+
                 const start = self.rng.intRangeAtMost(usize, 0, unicode_chars.len - 4);
-                // Find a valid UTF-8 boundary
+
                 var end = start + 1;
                 while (end < unicode_chars.len and (unicode_chars[end] & 0xC0) == 0x80) {
                     end += 1;
@@ -328,7 +303,7 @@ pub const ChaosGenerator = struct {
                 v.deinit(self.allocator);
             }
 
-            // Skip if key already exists (duplicate keys)
+
             if (obj.asObject().?.contains(key)) {
                 self.allocator.free(key);
                 var v = val;
@@ -366,7 +341,7 @@ pub const ChaosGenerator = struct {
             // Uniform object array (tabular candidate)
             try self.generateTabularArray(&arr, len);
         } else {
-            // Mixed array
+
             for (0..len) |_| {
                 const val = try self.generateValue();
                 arr.asArray().?.append(val) catch {
@@ -447,7 +422,7 @@ pub const ChaosGenerator = struct {
             // Simple identifier key (most common)
             return self.generateIdentifierKey();
         } else if (key_type < 85) {
-            // Key with special chars (needs quoting)
+
             return self.generateSpecialKey();
         } else {
             // Dotted key (for path expansion testing)
@@ -505,7 +480,6 @@ pub const ChaosGenerator = struct {
     }
 };
 
-/// Run chaos tests with given configuration
 pub fn runChaosTests(allocator: std.mem.Allocator, config: ChaosConfig) !ChaosResult {
     var result = ChaosResult.init(allocator);
     errdefer result.deinit();
@@ -531,7 +505,7 @@ pub fn runChaosTests(allocator: std.mem.Allocator, config: ChaosConfig) !ChaosRe
             std.debug.print("   Progress: {d}% ({d}/{d})\r", .{ pct, iter, config.iterations });
         }
 
-        // Use iteration-based sub-seed for reproducibility
+
         var iter_config = config;
         iter_config.seed = config.seed +% @as(u64, @intCast(iter));
 
@@ -570,7 +544,7 @@ fn runSingleChaosTest(allocator: std.mem.Allocator, config: ChaosConfig, iterati
     };
     defer value.deinit(allocator);
 
-    // Get JSON representation for debugging
+
     const input_json = value.toJsonString(allocator) catch null;
     defer if (input_json) |j| allocator.free(j);
 

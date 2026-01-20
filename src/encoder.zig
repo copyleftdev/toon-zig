@@ -1,6 +1,3 @@
-//! TOON Encoder - JSON to TOON conversion.
-//!
-//! Implements the encoding rules per TOON specification v3.0.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -12,7 +9,6 @@ const JsonArray = value_mod.JsonArray;
 const escape = @import("escape.zig");
 const number = @import("number.zig");
 
-/// Delimiter options for TOON encoding.
 pub const Delimiter = enum {
     comma,
     tab,
@@ -44,25 +40,18 @@ pub const Delimiter = enum {
     }
 };
 
-/// Key folding mode per §13.4.
 pub const KeyFoldingMode = enum {
     off,
     safe,
 };
 
-/// Encoder options.
 pub const EncodeOptions = struct {
-    /// Number of spaces per indentation level (default: 2).
     indent: usize = 2,
-    /// Document delimiter (default: comma).
     delimiter: Delimiter = .comma,
-    /// Key folding mode (default: off).
     key_folding: KeyFoldingMode = .off,
-    /// Maximum depth for key folding (default: max).
     flatten_depth: usize = std.math.maxInt(usize),
 };
 
-/// Encoder state.
 const Encoder = struct {
     allocator: Allocator,
     options: EncodeOptions,
@@ -103,7 +92,6 @@ const Encoder = struct {
         self.output.append('\n') catch return ToonError.OutOfMemory;
     }
 
-    /// Encode a primitive value as a string token.
     fn encodePrimitiveToken(self: *Encoder, val: JsonValue) ToonError!void {
         switch (val) {
             .null => try self.writeSlice("null"),
@@ -133,12 +121,10 @@ const Encoder = struct {
         }
     }
 
-    /// Check if a string value needs quoting per §7.2.
     fn needsQuoting(self: *Encoder, s: []const u8) bool {
         return needsQuotingWithDelimiter(s, self.active_delimiter);
     }
 
-    /// Encode a key per §7.3.
     fn encodeKey(self: *Encoder, key: []const u8) ToonError!void {
         if (isValidUnquotedKey(key)) {
             try self.writeSlice(key);
@@ -151,35 +137,33 @@ const Encoder = struct {
         }
     }
 
-    /// Encode the root value.
     fn encodeRoot(self: *Encoder, val: JsonValue) ToonError!void {
         switch (val) {
             .null, .bool, .integer, .float, .string => {
-                // Single primitive at root
+
                 try self.encodePrimitiveToken(val);
             },
             .array => |arr| {
-                // Root array
+
                 try self.encodeRootArray(arr);
             },
             .object => |obj| {
-                // Root object (empty produces empty output)
+
                 try self.encodeObject(obj, null);
             },
         }
     }
 
-    /// Encode a root-level array.
     fn encodeRootArray(self: *Encoder, arr: JsonArray) ToonError!void {
         if (arr.items.len == 0) {
-            // Empty root array: [0]:
+
             try self.writeSlice("[0");
             try self.writeSlice(self.options.delimiter.headerSuffix());
             try self.writeSlice("]:");
             return;
         }
 
-        // Detect array form
+
         const form = detectArrayForm(arr);
 
         switch (form) {
@@ -190,7 +174,6 @@ const Encoder = struct {
         }
     }
 
-    /// Encode an object.
     fn encodeObject(self: *Encoder, obj: JsonObject, first_on_hyphen: ?bool) ToonError!void {
         const is_first_on_hyphen = first_on_hyphen orelse false;
         var first = true;
@@ -201,9 +184,9 @@ const Encoder = struct {
             const val = entry.value_ptr.*;
 
             if (first and is_first_on_hyphen) {
-                // First field on hyphen line - already indented, no newline needed
+
             } else if (first) {
-                // First field at root or nested - just indent, no newline
+
                 try self.writeIndent();
             } else {
                 // Subsequent fields - newline then indent
@@ -222,9 +205,9 @@ const Encoder = struct {
                     try self.encodeKey(key);
                     try self.writeByte(':');
                     if (nested_obj.count() == 0) {
-                        // Empty object - just the colon
+
                     } else {
-                        // Nested object content starts on next line
+
                         self.current_depth += 1;
                         try self.writeNewline();
                         try self.encodeObjectFields(nested_obj);
@@ -242,7 +225,6 @@ const Encoder = struct {
         }
     }
 
-    /// Encode object fields (for nested objects - starts at current depth).
     fn encodeObjectFields(self: *Encoder, obj: JsonObject) ToonError!void {
         var first = true;
 
@@ -283,10 +265,9 @@ const Encoder = struct {
         }
     }
 
-    /// Encode an array as a field value (key already written).
     fn encodeArrayField(self: *Encoder, arr: JsonArray) ToonError!void {
         if (arr.items.len == 0) {
-            // Empty array: just header
+
             try self.writeSlice("[0");
             try self.writeSlice(self.options.delimiter.headerSuffix());
             try self.writeSlice("]:");
@@ -360,7 +341,6 @@ const Encoder = struct {
         }
     }
 
-    /// Encode a primitive inline array.
     fn encodePrimitiveArrayInline(self: *Encoder, arr: JsonArray, key: ?[]const u8) ToonError!void {
         if (key) |k| {
             try self.encodeKey(k);
@@ -372,7 +352,6 @@ const Encoder = struct {
         try self.encodePrimitiveValues(arr);
     }
 
-    /// Encode a tabular array.
     fn encodeTabularArray(self: *Encoder, arr: JsonArray, key: ?[]const u8) ToonError!void {
         const fields = try self.getTabularFields(arr);
         defer self.allocator.free(fields);
@@ -396,7 +375,6 @@ const Encoder = struct {
         self.current_depth -= 1;
     }
 
-    /// Encode an array of arrays.
     fn encodeArrayOfArrays(self: *Encoder, arr: JsonArray, key: ?[]const u8) ToonError!void {
         if (key) |k| {
             try self.encodeKey(k);
@@ -422,7 +400,6 @@ const Encoder = struct {
         self.current_depth -= 1;
     }
 
-    /// Encode a mixed/non-uniform array.
     fn encodeMixedArray(self: *Encoder, arr: JsonArray, key: ?[]const u8) ToonError!void {
         if (key) |k| {
             try self.encodeKey(k);
@@ -441,7 +418,6 @@ const Encoder = struct {
         self.current_depth -= 1;
     }
 
-    /// Encode a list item.
     fn encodeListItem(self: *Encoder, item: JsonValue) ToonError!void {
         switch (item) {
             .null, .bool, .integer, .float, .string => {
@@ -474,14 +450,14 @@ const Encoder = struct {
                     try self.writeByte('-');
                 } else {
                     try self.writeSlice("- ");
-                    // Check if first field is tabular array
+
                     var it = obj.iterator();
                     if (it.next()) |first_entry| {
                         const first_key = first_entry.key_ptr.*;
                         const first_val = first_entry.value_ptr.*;
 
                         if (first_val == .array and isTabularArray(first_val.array)) {
-                            // First field is tabular - special handling per §10
+
                             try self.encodeKey(first_key);
                             const tab_arr = first_val.array;
                             const fields = try self.getTabularFields(tab_arr);
@@ -494,7 +470,7 @@ const Encoder = struct {
                             try self.writeFieldList(fields);
                             try self.writeSlice("}:");
 
-                            // Rows at depth +2
+
                             self.current_depth += 2;
                             for (tab_arr.items) |row| {
                                 try self.writeNewline();
@@ -532,7 +508,7 @@ const Encoder = struct {
                             }
                             self.current_depth -= 1;
                         } else {
-                            // First field on hyphen line
+
                             try self.encodeKey(first_key);
 
                             switch (first_val) {
@@ -589,7 +565,6 @@ const Encoder = struct {
         }
     }
 
-    /// Encode primitive values separated by delimiter.
     fn encodePrimitiveValues(self: *Encoder, arr: JsonArray) ToonError!void {
         for (arr.items, 0..) |item, i| {
             if (i > 0) {
@@ -599,7 +574,6 @@ const Encoder = struct {
         }
     }
 
-    /// Encode a tabular row.
     fn encodeTabularRow(self: *Encoder, obj: JsonObject, fields: []const []const u8) ToonError!void {
         for (fields, 0..) |field, i| {
             if (i > 0) {
@@ -613,14 +587,12 @@ const Encoder = struct {
         }
     }
 
-    /// Write array length.
     fn writeArrayLength(self: *Encoder, len: usize) ToonError!void {
         var buf: [20]u8 = undefined;
         const slice = std.fmt.bufPrint(&buf, "{d}", .{len}) catch return ToonError.Overflow;
         try self.writeSlice(slice);
     }
 
-    /// Write field list.
     fn writeFieldList(self: *Encoder, fields: []const []const u8) ToonError!void {
         for (fields, 0..) |field, i| {
             if (i > 0) {
@@ -630,7 +602,6 @@ const Encoder = struct {
         }
     }
 
-    /// Get field names for tabular array (from first object).
     fn getTabularFields(self: *Encoder, arr: JsonArray) ToonError![][]const u8 {
         if (arr.items.len == 0) return &[_][]const u8{};
 
@@ -655,7 +626,6 @@ const Encoder = struct {
     }
 };
 
-/// Array form detection.
 const ArrayForm = enum {
     primitive_inline,
     tabular,
@@ -663,11 +633,10 @@ const ArrayForm = enum {
     mixed_expanded,
 };
 
-/// Detect the appropriate encoding form for an array.
 fn detectArrayForm(arr: JsonArray) ArrayForm {
     if (arr.items.len == 0) return .primitive_inline;
 
-    // Check if all primitives
+
     var all_primitives = true;
     var all_arrays = true;
     var all_primitive_arrays = true;
@@ -682,7 +651,7 @@ fn detectArrayForm(arr: JsonArray) ArrayForm {
             .array => |sub_arr| {
                 all_primitives = false;
                 all_objects = false;
-                // Check if inner array is all primitives
+
                 for (sub_arr.items) |sub_item| {
                     if (!sub_item.isPrimitive()) {
                         all_primitive_arrays = false;
@@ -703,26 +672,25 @@ fn detectArrayForm(arr: JsonArray) ArrayForm {
     return .mixed_expanded;
 }
 
-/// Check if an array qualifies for tabular encoding per §9.3.
 fn isTabularArray(arr: JsonArray) bool {
     if (arr.items.len == 0) return false;
 
-    // All elements must be objects
+
     for (arr.items) |item| {
         if (item != .object) return false;
     }
 
-    // Get keys from first object
+
     const first_obj = arr.items[0].object;
     if (first_obj.count() == 0) return false;
 
-    // All values in first object must be primitives
+
     var it = first_obj.iterator();
     while (it.next()) |entry| {
         if (!entry.value_ptr.isPrimitive()) return false;
     }
 
-    // All objects must have the same keys
+
     for (arr.items[1..]) |item| {
         const obj = item.object;
         if (obj.count() != first_obj.count()) return false;
@@ -737,9 +705,8 @@ fn isTabularArray(arr: JsonArray) bool {
     return true;
 }
 
-/// Check if a string needs quoting with a given delimiter.
 pub fn needsQuotingWithDelimiter(s: []const u8, delimiter: Delimiter) bool {
-    // Empty string
+
     if (s.len == 0) return true;
 
     // Leading/trailing whitespace
@@ -770,8 +737,6 @@ pub fn needsQuotingWithDelimiter(s: []const u8, delimiter: Delimiter) bool {
     return false;
 }
 
-/// Check if a key can be unquoted per §7.3.
-/// Pattern: ^[A-Za-z_][A-Za-z0-9_.]*$
 pub fn isValidUnquotedKey(key: []const u8) bool {
     if (key.len == 0) return false;
 
@@ -791,7 +756,6 @@ pub fn isValidUnquotedKey(key: []const u8) bool {
     return true;
 }
 
-/// Encode a JsonValue to TOON format.
 pub fn encode(allocator: Allocator, val: JsonValue, options: EncodeOptions) ToonError![]u8 {
     var enc = Encoder.init(allocator, options);
     errdefer enc.deinit();
@@ -877,7 +841,7 @@ test "isValidUnquotedKey" {
 }
 
 test "needsQuotingWithDelimiter" {
-    // Empty
+
     try std.testing.expect(needsQuotingWithDelimiter("", .comma));
 
     // Reserved

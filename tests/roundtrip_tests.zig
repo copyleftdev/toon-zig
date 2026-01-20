@@ -1,6 +1,3 @@
-//! Round-trip tests for TOON encoder/decoder.
-//!
-//! These tests verify that encode(decode(x)) == x and decode(encode(x)) == x.
 
 const std = @import("std");
 const toon = @import("toon");
@@ -9,7 +6,7 @@ const JsonValue = toon.JsonValue;
 const testing = std.testing;
 
 fn expectRoundTrip(allocator: std.mem.Allocator, input_json: []const u8) !void {
-    // Parse JSON input
+
     var original = try JsonValue.parseJson(allocator, input_json);
     defer original.deinit(allocator);
 

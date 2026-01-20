@@ -1,21 +1,12 @@
-//! JSON-compatible value types for TOON.
-//!
-//! TOON encodes the JSON data model:
-//! - Primitives: string, number, boolean, null
-//! - Objects: ordered key-value maps
-//! - Arrays: ordered sequences
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ToonError = @import("error.zig").ToonError;
 
-/// A JSON-compatible array type.
 pub const JsonArray = std.ArrayList(JsonValue);
 
-/// A JSON-compatible object type with preserved insertion order.
 pub const JsonObject = std.StringArrayHashMap(JsonValue);
 
-/// A JSON-compatible value (primitive, object, or array).
 pub const JsonValue = union(enum) {
     null,
     bool: bool,
@@ -25,48 +16,39 @@ pub const JsonValue = union(enum) {
     array: JsonArray,
     object: JsonObject,
 
-    /// Create a null value.
     pub fn initNull() JsonValue {
         return .null;
     }
 
-    /// Create a boolean value.
     pub fn initBool(b: bool) JsonValue {
         return .{ .bool = b };
     }
 
-    /// Create an integer value.
     pub fn initInteger(i: i64) JsonValue {
         return .{ .integer = i };
     }
 
-    /// Create a float value.
     pub fn initFloat(f: f64) JsonValue {
         return .{ .float = f };
     }
 
-    /// Create a string value. The string is NOT copied; caller retains ownership.
     pub fn initString(s: []const u8) JsonValue {
         return .{ .string = s };
     }
 
-    /// Create a string value by copying the input.
     pub fn initStringCopy(allocator: Allocator, s: []const u8) ToonError!JsonValue {
         const copy = allocator.dupe(u8, s) catch return ToonError.OutOfMemory;
         return .{ .string = copy };
     }
 
-    /// Create an empty array.
     pub fn initArray(allocator: Allocator) JsonValue {
         return .{ .array = JsonArray.init(allocator) };
     }
 
-    /// Create an empty object.
     pub fn initObject(allocator: Allocator) JsonValue {
         return .{ .object = JsonObject.init(allocator) };
     }
 
-    /// Deep clone this value.
     pub fn clone(self: JsonValue, allocator: Allocator) ToonError!JsonValue {
         return switch (self) {
             .null => .null,
@@ -100,7 +82,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Release all memory associated with this value.
     pub fn deinit(self: *JsonValue, allocator: Allocator) void {
         switch (self.*) {
             .null, .bool, .integer, .float => {},
@@ -125,7 +106,6 @@ pub const JsonValue = union(enum) {
         self.* = .null;
     }
 
-    /// Check if this value is a primitive (not object or array).
     pub fn isPrimitive(self: JsonValue) bool {
         return switch (self) {
             .null, .bool, .integer, .float, .string => true,
@@ -133,12 +113,10 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Check if this value is null.
     pub fn isNull(self: JsonValue) bool {
         return self == .null;
     }
 
-    /// Check if this value is a number (integer or float).
     pub fn isNumber(self: JsonValue) bool {
         return switch (self) {
             .integer, .float => true,
@@ -146,7 +124,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Get as boolean, or null if not a boolean.
     pub fn asBool(self: JsonValue) ?bool {
         return switch (self) {
             .bool => |b| b,
@@ -154,7 +131,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Get as string, or null if not a string.
     pub fn asString(self: JsonValue) ?[]const u8 {
         return switch (self) {
             .string => |s| s,
@@ -162,7 +138,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Get as integer, or null if not an integer.
     pub fn asInteger(self: JsonValue) ?i64 {
         return switch (self) {
             .integer => |i| i,
@@ -170,7 +145,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Get as float. Integers are converted to float.
     pub fn asFloat(self: JsonValue) ?f64 {
         return switch (self) {
             .float => |f| f,
@@ -179,7 +153,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Get as array, or null if not an array.
     pub fn asArray(self: *JsonValue) ?*JsonArray {
         return switch (self.*) {
             .array => |*arr| arr,
@@ -187,7 +160,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Get as object, or null if not an object.
     pub fn asObject(self: *JsonValue) ?*JsonObject {
         return switch (self.*) {
             .object => |*obj| obj,
@@ -195,7 +167,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Get as const array.
     pub fn asConstArray(self: JsonValue) ?JsonArray {
         return switch (self) {
             .array => |arr| arr,
@@ -203,7 +174,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Get as const object.
     pub fn asConstObject(self: JsonValue) ?JsonObject {
         return switch (self) {
             .object => |obj| obj,
@@ -211,7 +181,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Compare two values for equality.
     pub fn eql(self: JsonValue, other: JsonValue) bool {
         const Tag = @typeInfo(JsonValue).@"union".tag_type.?;
         const self_tag: Tag = self;
@@ -257,7 +226,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Parse a JsonValue from a JSON string using std.json.
     pub fn parseJson(allocator: Allocator, json_str: []const u8) ToonError!JsonValue {
         const parsed = std.json.parseFromSlice(std.json.Value, allocator, json_str, .{}) catch {
             return ToonError.InvalidInput;
@@ -267,7 +235,6 @@ pub const JsonValue = union(enum) {
         return fromStdJson(allocator, parsed.value);
     }
 
-    /// Convert from std.json.Value to our JsonValue.
     pub fn fromStdJson(allocator: Allocator, val: std.json.Value) ToonError!JsonValue {
         return switch (val) {
             .null => .null,
@@ -313,7 +280,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Convert to std.json.Value.
     pub fn toStdJson(self: JsonValue, allocator: Allocator) ToonError!std.json.Value {
         return switch (self) {
             .null => .null,
@@ -347,7 +313,6 @@ pub const JsonValue = union(enum) {
         };
     }
 
-    /// Stringify to JSON format.
     pub fn toJsonString(self: JsonValue, allocator: Allocator) ToonError![]u8 {
         var list = std.ArrayList(u8).init(allocator);
         errdefer list.deinit();
@@ -355,7 +320,6 @@ pub const JsonValue = union(enum) {
         return list.toOwnedSlice() catch return ToonError.OutOfMemory;
     }
 
-    /// Write JSON representation to a writer.
     pub fn writeJson(self: JsonValue, writer: anytype) !void {
         switch (self) {
             .null => try writer.writeAll("null"),

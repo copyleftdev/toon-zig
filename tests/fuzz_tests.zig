@@ -1,7 +1,3 @@
-//! Edge Case & Stress Testing for TOON
-//!
-//! Fast, targeted tests for edge cases and stress scenarios.
-//! For true coverage-guided fuzzing, use Zig 0.14+ with `zig test --fuzz`
 
 const std = @import("std");
 const toon = @import("toon");
@@ -15,12 +11,12 @@ test "edge: known edge cases" {
     const allocator = std.testing.allocator;
 
     const edge_cases = [_][]const u8{
-        // Empty/minimal
+
         "",
         " ",
         "\n",
         "\t",
-        // Primitives
+
         "null",
         "true",
         "false",
@@ -29,25 +25,25 @@ test "edge: known edge cases" {
         "3.14",
         "\"\"",
         "\"hello\"",
-        // Objects
+
         "key: value",
         "key:",
         "a: 1\nb: 2",
-        // Arrays
+
         "[0]:",
         "[1]: a",
         "[3]: 1,2,3",
-        // Nested
+
         "a:\n  b: 1",
         "x[2]:\n  - 1\n  - 2",
-        // Special chars
+
         "key: \"hello\\nworld\"",
         "\"quoted key\": value",
-        // Unicode
+
         "msg: 你好世界",
         "emoji: 🎉",
-        // NOTE: Malformed inputs currently have memory leaks on error paths
-        // TODO: Fix decoder cleanup on parse errors
+
+
         // "[",
         // "]",
         // ":",

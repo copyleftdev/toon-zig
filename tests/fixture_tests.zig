@@ -1,7 +1,3 @@
-//! TOON Reference Test Suite Runner
-//!
-//! Runs the official TOON specification test fixtures against this implementation.
-//! Test fixtures are loaded from the tests/fixtures directory.
 
 const std = @import("std");
 const toon = @import("toon");
@@ -9,7 +5,6 @@ const JsonValue = toon.JsonValue;
 
 const testing = std.testing;
 
-/// Test fixture structure matching the spec's JSON format.
 const TestFixture = struct {
     version: []const u8,
     category: []const u8,
@@ -36,7 +31,6 @@ const TestOptions = struct {
     expandPaths: ?[]const u8 = null,
 };
 
-/// Load and run encode test fixtures.
 fn runEncodeFixture(allocator: std.mem.Allocator, fixture_path: []const u8) !void {
     const file = std.fs.cwd().openFile(fixture_path, .{}) catch |err| {
         std.debug.print("Note: Fixture file not found: {s} (error: {})\n", .{ fixture_path, err });
@@ -70,7 +64,7 @@ fn runEncodeFixture(allocator: std.mem.Allocator, fixture_path: []const u8) !voi
         };
         defer input_val.deinit(allocator);
 
-        // Build encode options
+
         var options = toon.EncodeOptions{};
         if (tc.get("options")) |opts| {
             if (opts.object.get("delimiter")) |d| {
@@ -116,7 +110,6 @@ fn runEncodeFixture(allocator: std.mem.Allocator, fixture_path: []const u8) !voi
     }
 }
 
-/// Load and run decode test fixtures.
 fn runDecodeFixture(allocator: std.mem.Allocator, fixture_path: []const u8) !void {
     const file = std.fs.cwd().openFile(fixture_path, .{}) catch |err| {
         std.debug.print("Note: Fixture file not found: {s} (error: {})\n", .{ fixture_path, err });
@@ -143,7 +136,7 @@ fn runDecodeFixture(allocator: std.mem.Allocator, fixture_path: []const u8) !voi
         const expected = tc.get("expected").?;
         const should_error = if (tc.get("shouldError")) |v| v.bool else false;
 
-        // Build decode options
+
         var options = toon.DecodeOptions{};
         if (tc.get("options")) |opts| {
             if (opts.object.get("indent")) |i| {

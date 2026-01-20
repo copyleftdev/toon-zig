@@ -1,6 +1,3 @@
-//! TOON Decoder - TOON to JSON conversion.
-//!
-//! Implements the decoding rules per TOON specification v3.0.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -14,23 +11,17 @@ const number = @import("number.zig");
 const encoder = @import("encoder.zig");
 const Delimiter = encoder.Delimiter;
 
-/// Path expansion mode per §13.4.
 pub const PathExpansionMode = enum {
     off,
     safe,
 };
 
-/// Decoder options.
 pub const DecodeOptions = struct {
-    /// Number of spaces per indentation level (default: 2).
     indent: usize = 2,
-    /// Strict mode validation (default: true).
     strict: bool = true,
-    /// Path expansion mode (default: off).
     expand_paths: PathExpansionMode = .off,
 };
 
-/// Parsed line information.
 const Line = struct {
     content: []const u8,
     depth: usize,
@@ -38,7 +29,6 @@ const Line = struct {
     is_blank: bool,
 };
 
-/// Array header information.
 const ArrayHeader = struct {
     key: ?[]const u8,
     length: usize,
@@ -47,7 +37,6 @@ const ArrayHeader = struct {
     inline_values: ?[]const u8,
 };
 
-/// Decoder state.
 const Decoder = struct {
     allocator: Allocator,
     options: DecodeOptions,
@@ -72,7 +61,7 @@ const Decoder = struct {
             }
         }
 
-        // Handle last line (no trailing newline)
+
         if (line_start <= input.len) {
             const line_content = input[line_start..];
             if (line_content.len > 0 or line_start < input.len) {
@@ -95,7 +84,7 @@ const Decoder = struct {
     }
 
     fn parseLine(content: []const u8, line_number: usize, indent_size: usize, strict: bool) ToonError!Line {
-        // Count leading spaces
+
         var spaces: usize = 0;
         for (content) |c| {
             if (c == ' ') {
@@ -108,10 +97,10 @@ const Decoder = struct {
             }
         }
 
-        // Cap spaces at content length (handles whitespace-only lines)
+
         const actual_spaces = @min(spaces, content.len);
 
-        // Check indentation is valid multiple
+
         if (strict and actual_spaces % indent_size != 0) {
             return ToonError.InvalidIndentation;
         }
@@ -155,23 +144,22 @@ const Decoder = struct {
         return null;
     }
 
-    /// Decode the root value.
     fn decodeRoot(self: *Decoder) ToonError!JsonValue {
         self.skipBlankLines();
 
-        // Empty document → empty object
+
         if (self.peekNonBlank() == null) {
             return JsonValue.initObject(self.allocator);
         }
 
         const first = self.peekNonBlank().?;
 
-        // Check for root array header (starts with '[', no key)
+
         if (isRootArrayHeader(first.content)) {
             return self.decodeRootArray();
         }
 
-        // Check for single primitive (exactly one non-blank line, no colon/array header)
+
         if (self.countNonBlankLines() == 1) {
             if (!isKeyValueLine(first.content) and !isArrayHeader(first.content)) {
                 return self.decodePrimitive(first.content);
@@ -190,7 +178,6 @@ const Decoder = struct {
         return count;
     }
 
-    /// Decode a root array.
     fn decodeRootArray(self: *Decoder) ToonError!JsonValue {
         const line = self.currentLine() orelse return ToonError.UnexpectedEndOfInput;
         self.advance();
@@ -202,27 +189,26 @@ const Decoder = struct {
         errdefer arr.deinit(self.allocator);
 
         if (header.fields) |fields| {
-            // Tabular array
+
             defer {
                 for (fields) |f| self.allocator.free(f);
                 self.allocator.free(fields);
             }
             try self.decodeTabularRows(&arr, header.length, fields, line.depth);
         } else if (header.inline_values) |inline_vals| {
-            // Inline primitive array
+
             try self.decodeInlineValues(&arr, inline_vals);
             if (self.options.strict and arr.asConstArray().?.items.len != header.length) {
                 return ToonError.ArrayLengthMismatch;
             }
         } else {
-            // Expanded list
+
             try self.decodeExpandedList(&arr, header.length, line.depth);
         }
 
         return arr;
     }
 
-    /// Decode an object at given depth.
     fn decodeObject(self: *Decoder, depth: usize) ToonError!JsonValue {
         var obj = JsonValue.initObject(self.allocator);
         errdefer obj.deinit(self.allocator);
@@ -240,18 +226,18 @@ const Decoder = struct {
                 continue;
             }
 
-            // Parse key-value or nested structure
+
             const kv = try self.parseKeyValue(line.content);
             self.advance();
 
-            // kv.key is already allocated by parseKey, use it directly
+
             const key_copy = kv.key;
             errdefer self.allocator.free(key_copy);
 
             if (kv.is_array_header) {
-                // Array field
+
                 const header = try self.parseArrayHeader(line.content);
-                // header.key is allocated but we use key_copy instead, so free it
+
                 if (header.key) |hkey| self.allocator.free(hkey);
                 self.active_delimiter = header.delimiter;
 
@@ -275,11 +261,11 @@ const Decoder = struct {
 
                 obj.asObject().?.put(key_copy, arr) catch return ToonError.OutOfMemory;
             } else if (kv.value) |val_str| {
-                // Primitive value
+
                 const val = try self.decodePrimitive(val_str);
                 obj.asObject().?.put(key_copy, val) catch return ToonError.OutOfMemory;
             } else {
-                // Nested object
+
                 const nested = try self.decodeObject(depth + 1);
                 obj.asObject().?.put(key_copy, nested) catch return ToonError.OutOfMemory;
             }
@@ -293,7 +279,6 @@ const Decoder = struct {
         return obj;
     }
 
-    /// Decode tabular rows.
     fn decodeTabularRows(self: *Decoder, arr: *JsonValue, expected_count: usize, fields: [][]const u8, header_depth: usize) ToonError!void {
         const row_depth = header_depth + 1;
         var row_count: usize = 0;
@@ -309,7 +294,7 @@ const Decoder = struct {
 
             if (line.depth != row_depth) break;
 
-            // Check if this is a row or a key-value line (disambiguation per §9.3)
+
             if (self.isTabularRow(line.content)) {
                 const row_obj = try self.decodeTabularRow(line.content, fields);
                 arr.asArray().?.append(row_obj) catch return ToonError.OutOfMemory;
@@ -325,7 +310,6 @@ const Decoder = struct {
         }
     }
 
-    /// Check if a line is a tabular row (not a key-value line).
     fn isTabularRow(self: *Decoder, content: []const u8) bool {
         const delim_pos = self.findFirstUnquoted(content, self.active_delimiter.char());
         const colon_pos = self.findFirstUnquoted(content, ':');
@@ -344,7 +328,6 @@ const Decoder = struct {
         return false;
     }
 
-    /// Find first unquoted occurrence of a character.
     fn findFirstUnquoted(self: *Decoder, content: []const u8, char: u8) ?usize {
         _ = self;
         var in_quotes = false;
@@ -363,7 +346,6 @@ const Decoder = struct {
         return null;
     }
 
-    /// Decode a single tabular row.
     fn decodeTabularRow(self: *Decoder, content: []const u8, fields: [][]const u8) ToonError!JsonValue {
         const values = try self.splitDelimited(content);
         defer self.allocator.free(values);
@@ -390,7 +372,6 @@ const Decoder = struct {
         return obj;
     }
 
-    /// Decode inline values.
     fn decodeInlineValues(self: *Decoder, arr: *JsonValue, inline_vals: []const u8) ToonError!void {
         if (inline_vals.len == 0) return;
 
@@ -403,7 +384,6 @@ const Decoder = struct {
         }
     }
 
-    /// Decode an expanded list.
     fn decodeExpandedList(self: *Decoder, arr: *JsonValue, expected_count: usize, header_depth: usize) ToonError!void {
         const item_depth = header_depth + 1;
         var item_count: usize = 0;
@@ -433,18 +413,17 @@ const Decoder = struct {
         }
     }
 
-    /// Decode a list item.
     fn decodeListItem(self: *Decoder, line: *const Line) ToonError!JsonValue {
         self.advance();
 
-        // Empty object: bare "-"
+
         if (std.mem.eql(u8, line.content, "-")) {
             return JsonValue.initObject(self.allocator);
         }
 
-        const after_hyphen = line.content[2..]; // Skip "- "
+        const after_hyphen = line.content[2..];
 
-        // Inline array: - [N]: ...
+
         if (std.mem.startsWith(u8, after_hyphen, "[")) {
             const header = try self.parseArrayHeader(after_hyphen);
             self.active_delimiter = header.delimiter;
@@ -455,7 +434,7 @@ const Decoder = struct {
             if (header.inline_values) |inline_vals| {
                 try self.decodeInlineValues(&arr, inline_vals);
             } else {
-                // Nested expanded list
+
                 try self.decodeExpandedList(&arr, header.length, line.depth);
             }
 
@@ -466,22 +445,21 @@ const Decoder = struct {
             return arr;
         }
 
-        // Object or primitive
+
         if (self.findFirstUnquoted(after_hyphen, ':')) |colon_pos| {
-            // Object with first field on hyphen line
+
             return self.decodeListItemObject(after_hyphen, colon_pos, line.depth);
         } else {
-            // Primitive
+
             return self.decodePrimitive(after_hyphen);
         }
     }
 
-    /// Decode a list item that is an object.
     fn decodeListItemObject(self: *Decoder, content: []const u8, colon_pos: usize, hyphen_depth: usize) ToonError!JsonValue {
         var obj = JsonValue.initObject(self.allocator);
         errdefer obj.deinit(self.allocator);
 
-        // Parse first field
+
         const key_part = std.mem.trim(u8, content[0..colon_pos], " ");
         const key = try self.parseKey(key_part);
         const key_copy = self.allocator.dupe(u8, key) catch return ToonError.OutOfMemory;
@@ -489,9 +467,9 @@ const Decoder = struct {
 
         const after_colon = std.mem.trim(u8, content[colon_pos + 1 ..], " ");
 
-        // Check if first field is an array
+
         if (std.mem.startsWith(u8, key_part, "[") or std.mem.indexOf(u8, key_part, "[") != null) {
-            // Array header on hyphen line
+
             const header = try self.parseArrayHeader(content);
             self.active_delimiter = header.delimiter;
 
@@ -503,7 +481,7 @@ const Decoder = struct {
                     for (fields) |f| self.allocator.free(f);
                     self.allocator.free(fields);
                 }
-                // Tabular rows at depth +2
+
                 try self.decodeTabularRowsAtDepth(&arr, header.length, fields, hyphen_depth + 2);
             } else if (header.inline_values) |inline_vals| {
                 try self.decodeInlineValues(&arr, inline_vals);
@@ -513,16 +491,16 @@ const Decoder = struct {
 
             obj.asObject().?.put(key_copy, arr) catch return ToonError.OutOfMemory;
         } else if (after_colon.len > 0) {
-            // Primitive value
+
             const val = try self.decodePrimitive(after_colon);
             obj.asObject().?.put(key_copy, val) catch return ToonError.OutOfMemory;
         } else {
-            // Nested object
+
             const nested = try self.decodeObject(hyphen_depth + 2);
             obj.asObject().?.put(key_copy, nested) catch return ToonError.OutOfMemory;
         }
 
-        // Parse remaining fields at depth +1
+
         const field_depth = hyphen_depth + 1;
         while (self.currentLine()) |line| {
             if (line.is_blank) {
@@ -599,7 +577,6 @@ const Decoder = struct {
         }
     }
 
-    /// Split content by active delimiter, respecting quotes.
     fn splitDelimited(self: *Decoder, content: []const u8) ToonError![][]const u8 {
         var parts = std.ArrayList([]const u8).init(self.allocator);
         errdefer parts.deinit();
@@ -627,7 +604,6 @@ const Decoder = struct {
         return parts.toOwnedSlice() catch return ToonError.OutOfMemory;
     }
 
-    /// Parse a primitive token per §4.
     fn decodePrimitive(self: *Decoder, token: []const u8) ToonError!JsonValue {
         const trimmed = std.mem.trim(u8, token, " ");
 
@@ -635,7 +611,7 @@ const Decoder = struct {
             return JsonValue.initStringCopy(self.allocator, "");
         }
 
-        // Quoted string
+
         if (trimmed.len >= 2 and trimmed[0] == '"' and trimmed[trimmed.len - 1] == '"') {
             const inner = trimmed[1 .. trimmed.len - 1];
             const unescaped = try escape.unescapeString(self.allocator, inner);
@@ -659,9 +635,8 @@ const Decoder = struct {
         return JsonValue.initStringCopy(self.allocator, trimmed);
     }
 
-    /// Parse an array header.
     fn parseArrayHeader(self: *Decoder, content: []const u8) ToonError!ArrayHeader {
-        // Find key (if any) and bracket segment
+
         const bracket_start = std.mem.indexOf(u8, content, "[") orelse return ToonError.InvalidArrayHeader;
         const bracket_end = std.mem.indexOf(u8, content, "]") orelse return ToonError.InvalidArrayHeader;
 
@@ -672,12 +647,12 @@ const Decoder = struct {
         else
             null;
 
-        // Parse length and delimiter from bracket segment
+
         const bracket_content = content[bracket_start + 1 .. bracket_end];
         var length: usize = 0;
         var delimiter: Delimiter = .comma;
 
-        // Check for delimiter at end
+
         if (bracket_content.len > 0) {
             const last_char = bracket_content[bracket_content.len - 1];
             if (last_char == '\t') {
@@ -691,7 +666,7 @@ const Decoder = struct {
             }
         }
 
-        // Check for field list
+
         var fields: ?[][]const u8 = null;
         const brace_start = std.mem.indexOf(u8, content[bracket_end..], "{");
         const brace_end = std.mem.indexOf(u8, content[bracket_end..], "}");
@@ -723,10 +698,10 @@ const Decoder = struct {
             fields = field_list.toOwnedSlice() catch return ToonError.OutOfMemory;
         }
 
-        // Find colon
+
         const colon_pos = std.mem.indexOf(u8, content, ":") orelse return ToonError.MissingColon;
 
-        // Check for inline values after colon
+
         var inline_values: ?[]const u8 = null;
         if (colon_pos + 1 < content.len) {
             const after_colon = std.mem.trim(u8, content[colon_pos + 1 ..], " ");
@@ -744,10 +719,9 @@ const Decoder = struct {
         };
     }
 
-    /// Parse a key (quoted or unquoted). Always returns allocated memory.
     fn parseKey(self: *Decoder, raw: []const u8) ToonError![]const u8 {
         if (raw.len >= 2 and raw[0] == '"' and raw[raw.len - 1] == '"') {
-            // Quoted key - unescape
+
             const inner = raw[1 .. raw.len - 1];
             const unescaped = try escape.unescapeString(self.allocator, inner);
             return unescaped;
@@ -756,7 +730,6 @@ const Decoder = struct {
         return self.allocator.dupe(u8, raw) catch return ToonError.OutOfMemory;
     }
 
-    /// Parse key-value or key-only line.
     const KeyValueResult = struct {
         key: []const u8,
         value: ?[]const u8,
@@ -764,7 +737,7 @@ const Decoder = struct {
     };
 
     fn parseKeyValue(self: *Decoder, content: []const u8) ToonError!KeyValueResult {
-        // Check for array header first
+
         if (std.mem.indexOf(u8, content, "[")) |bracket_pos| {
             if (self.findFirstUnquoted(content, ':')) |colon_pos| {
                 if (bracket_pos < colon_pos) {
@@ -792,7 +765,6 @@ const Decoder = struct {
         };
     }
 
-    /// Apply path expansion per §13.4.
     fn expandPaths(self: *Decoder, obj: JsonValue) ToonError!JsonValue {
         var result = JsonValue.initObject(self.allocator);
         errdefer result.deinit(self.allocator);
@@ -802,7 +774,7 @@ const Decoder = struct {
             const key = entry.key_ptr.*;
             const val = entry.value_ptr.*;
 
-            // Check if key contains dot and is expandable
+
             if (std.mem.indexOf(u8, key, ".")) |_| {
                 if (self.isExpandableKey(key)) {
                     try self.expandAndMerge(&result, key, val);
@@ -819,7 +791,6 @@ const Decoder = struct {
         return result;
     }
 
-    /// Check if a key is expandable (all segments are IdentifierSegments).
     fn isExpandableKey(self: *Decoder, key: []const u8) bool {
         _ = self;
         var it = std.mem.splitScalar(u8, key, '.');
@@ -829,7 +800,6 @@ const Decoder = struct {
         return true;
     }
 
-    /// Expand a dotted key and merge into result.
     fn expandAndMerge(self: *Decoder, result: *JsonValue, key: []const u8, val: JsonValue) ToonError!void {
         var segments = std.ArrayList([]const u8).init(self.allocator);
         defer segments.deinit();
@@ -842,7 +812,6 @@ const Decoder = struct {
         try self.setNestedValue(result, segments.items, val);
     }
 
-    /// Set a value at a nested path, creating objects as needed.
     fn setNestedValue(self: *Decoder, obj: *JsonValue, path: []const []const u8, val: JsonValue) ToonError!void {
         if (path.len == 0) return;
 
@@ -867,7 +836,7 @@ const Decoder = struct {
             const val_copy = try val.clone(self.allocator);
             obj.asObject().?.put(key_copy, val_copy) catch return ToonError.OutOfMemory;
         } else {
-            // Need to recurse
+
             if (obj.asObject().?.getPtr(first)) |existing| {
                 if (existing.* == .object) {
                     try self.setNestedValue(existing, rest, val);
@@ -891,7 +860,6 @@ const Decoder = struct {
     }
 };
 
-/// Check if a string is an IdentifierSegment per §1.9.
 fn isIdentifierSegment(s: []const u8) bool {
     if (s.len == 0) return false;
 
@@ -911,13 +879,11 @@ fn isIdentifierSegment(s: []const u8) bool {
     return true;
 }
 
-/// Check if content is a ROOT array header (starts with '[' or quoted key + '[').
-/// Object field array headers like "tags[3]:" should NOT match - they are object fields.
 fn isRootArrayHeader(content: []const u8) bool {
     const trimmed = std.mem.trimLeft(u8, content, " ");
     if (trimmed.len == 0) return false;
 
-    // Root array header starts with '[' (no key)
+
     if (trimmed[0] == '[') {
         const colon = std.mem.indexOf(u8, trimmed, ":") orelse return false;
         _ = colon;
@@ -927,19 +893,16 @@ fn isRootArrayHeader(content: []const u8) bool {
     return false;
 }
 
-/// Check if content is any array header (root or keyed).
 fn isArrayHeader(content: []const u8) bool {
     const bracket = std.mem.indexOf(u8, content, "[") orelse return false;
     const colon = std.mem.indexOf(u8, content, ":") orelse return false;
     return bracket < colon;
 }
 
-/// Check if content is a key-value line.
 fn isKeyValueLine(content: []const u8) bool {
     return std.mem.indexOf(u8, content, ":") != null;
 }
 
-/// Decode a TOON string to JsonValue.
 pub fn decode(allocator: Allocator, input: []const u8, options: DecodeOptions) ToonError!JsonValue {
     var dec = try Decoder.init(allocator, input, options);
     defer dec.deinit();
