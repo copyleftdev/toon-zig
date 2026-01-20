@@ -1,0 +1,35 @@
+{
+  "description": "Object decoding tests",
+  "tests": [
+    {
+      "name": "empty input",
+      "input": "",
+      "expected": {}
+    },
+    {
+      "name": "single field",
+      "input": "name: Alice",
+      "expected": {"name": "Alice"}
+    },
+    {
+      "name": "multiple fields",
+      "input": "name: Bob\nage: 30",
+      "expected": {"name": "Bob", "age": 30}
+    },
+    {
+      "name": "nested object",
+      "input": "user:\n  id: 1\n  name: Carol",
+      "expected": {"user": {"id": 1, "name": "Carol"}}
+    },
+    {
+      "name": "quoted key",
+      "input": "\"my key\": value",
+      "expected": {"my key": "value"}
+    },
+    {
+      "name": "empty nested object",
+      "input": "data:",
+      "expected": {"data": {}}
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "description": "Number decoding tests",
+  "tests": [
+    {
+      "name": "zero",
+      "input": "n: 0",
+      "expected": {"n": 0}
+    },
+    {
+      "name": "positive integer",
+      "input": "n: 42",
+      "expected": {"n": 42}
+    },
+    {
+      "name": "negative integer",
+      "input": "n: -123",
+      "expected": {"n": -123}
+    },
+    {
+      "name": "large integer",
+      "input": "n: 9223372036854775807",
+      "expected": {"n": 9223372036854775807}
+    },
+    {
+      "name": "float",
+      "input": "n: 3.14",
+      "expected": {"n": 3.14}
+    },
+    {
+      "name": "negative float",
+      "input": "n: -2.5",
+      "expected": {"n": -2.5}
+    },
+    {
+      "name": "scientific notation",
+      "input": "n: 1e10",
+      "expected": {"n": 1e10}
+    },
+    {
+      "name": "small float",
+      "input": "n: 0.001",
+      "expected": {"n": 0.001}
+    }
+  ]
+}

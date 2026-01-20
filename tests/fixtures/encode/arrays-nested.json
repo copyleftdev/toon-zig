@@ -1,0 +1,25 @@
+{
+  "description": "Nested array encoding tests",
+  "tests": [
+    {
+      "name": "array of arrays",
+      "input": {"matrix": [[1, 2], [3, 4]]},
+      "expected": "matrix[2]:\n  - [2]: 1,2\n  - [2]: 3,4"
+    },
+    {
+      "name": "3x3 matrix",
+      "input": {"grid": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]},
+      "expected": "grid[3]:\n  - [3]: 1,2,3\n  - [3]: 4,5,6\n  - [3]: 7,8,9"
+    },
+    {
+      "name": "array of objects",
+      "input": {"items": [{"a": 1}, {"b": 2}]},
+      "expected": "items[2]:\n  - a: 1\n  - b: 2"
+    },
+    {
+      "name": "mixed nested",
+      "input": {"data": [1, [2, 3], {"x": 4}]},
+      "expected": "data[3]:\n  - 1\n  - [2]: 2,3\n  - x: 4"
+    }
+  ]
+}

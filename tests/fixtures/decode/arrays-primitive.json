@@ -1,0 +1,30 @@
+{
+  "description": "Primitive array decoding tests",
+  "tests": [
+    {
+      "name": "empty array",
+      "input": "items[0]:",
+      "expected": {"items": []}
+    },
+    {
+      "name": "integer array",
+      "input": "nums[3]: 1,2,3",
+      "expected": {"nums": [1, 2, 3]}
+    },
+    {
+      "name": "string array",
+      "input": "tags[2]: red,blue",
+      "expected": {"tags": ["red", "blue"]}
+    },
+    {
+      "name": "boolean array",
+      "input": "flags[2]: true,false",
+      "expected": {"flags": [true, false]}
+    },
+    {
+      "name": "null array",
+      "input": "vals[2]: null,null",
+      "expected": {"vals": [null, null]}
+    }
+  ]
+}

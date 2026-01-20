@@ -1,0 +1,45 @@
+{
+  "description": "Primitive array encoding tests",
+  "tests": [
+    {
+      "name": "empty array",
+      "input": {"items": []},
+      "expected": "items[0]:"
+    },
+    {
+      "name": "single integer",
+      "input": {"nums": [42]},
+      "expected": "nums[1]: 42"
+    },
+    {
+      "name": "integer array",
+      "input": {"nums": [1, 2, 3, 4, 5]},
+      "expected": "nums[5]: 1,2,3,4,5"
+    },
+    {
+      "name": "string array",
+      "input": {"tags": ["red", "green", "blue"]},
+      "expected": "tags[3]: red,green,blue"
+    },
+    {
+      "name": "boolean array",
+      "input": {"flags": [true, false, true]},
+      "expected": "flags[3]: true,false,true"
+    },
+    {
+      "name": "null array",
+      "input": {"nulls": [null, null]},
+      "expected": "nulls[2]: null,null"
+    },
+    {
+      "name": "float array",
+      "input": {"vals": [1.5, 2.5, 3.5]},
+      "expected": "vals[3]: 1.5,2.5,3.5"
+    },
+    {
+      "name": "mixed primitives",
+      "input": {"mix": [1, "two", true, null]},
+      "expected": "mix[4]: 1,two,true,null"
+    }
+  ]
+}

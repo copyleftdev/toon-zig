@@ -1,0 +1,30 @@
+{
+  "description": "Tabular array encoding tests",
+  "tests": [
+    {
+      "name": "simple tabular",
+      "input": {"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]},
+      "expected": "users[2]{id,name}:\n  1,Alice\n  2,Bob"
+    },
+    {
+      "name": "three columns",
+      "input": {"data": [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]},
+      "expected": "data[2]{a,b,c}:\n  1,2,3\n  4,5,6"
+    },
+    {
+      "name": "single row",
+      "input": {"items": [{"x": 10, "y": 20}]},
+      "expected": "items[1]{x,y}:\n  10,20"
+    },
+    {
+      "name": "string values",
+      "input": {"people": [{"first": "John", "last": "Doe"}, {"first": "Jane", "last": "Smith"}]},
+      "expected": "people[2]{first,last}:\n  John,Doe\n  Jane,Smith"
+    },
+    {
+      "name": "mixed types in columns",
+      "input": {"rows": [{"name": "test", "count": 5, "active": true}]},
+      "expected": "rows[1]{name,count,active}:\n  test,5,true"
+    }
+  ]
+}

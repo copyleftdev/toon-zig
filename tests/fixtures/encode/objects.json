@@ -1,0 +1,45 @@
+{
+  "description": "Object encoding tests",
+  "tests": [
+    {
+      "name": "empty object",
+      "input": {},
+      "expected": ""
+    },
+    {
+      "name": "single field",
+      "input": {"name": "Alice"},
+      "expected": "name: Alice"
+    },
+    {
+      "name": "multiple fields",
+      "input": {"name": "Bob", "age": 30},
+      "expected": "name: Bob\nage: 30"
+    },
+    {
+      "name": "nested object",
+      "input": {"user": {"id": 1, "name": "Carol"}},
+      "expected": "user:\n  id: 1\n  name: Carol"
+    },
+    {
+      "name": "deeply nested",
+      "input": {"a": {"b": {"c": {"d": 1}}}},
+      "expected": "a:\n  b:\n    c:\n      d: 1"
+    },
+    {
+      "name": "mixed types",
+      "input": {"str": "hello", "num": 42, "bool": true, "nil": null},
+      "expected": "str: hello\nnum: 42\nbool: true\nnil: null"
+    },
+    {
+      "name": "quoted key with space",
+      "input": {"my key": "value"},
+      "expected": "\"my key\": value"
+    },
+    {
+      "name": "key with colon",
+      "input": {"time:zone": "UTC"},
+      "expected": "\"time:zone\": UTC"
+    }
+  ]
+}

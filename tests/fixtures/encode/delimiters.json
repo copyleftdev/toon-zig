@@ -1,0 +1,15 @@
+{
+  "description": "Delimiter encoding tests (default comma only - options not yet implemented in fixture runner)",
+  "tests": [
+    {
+      "name": "comma delimiter (default)",
+      "input": {"nums": [1, 2, 3]},
+      "expected": "nums[3]: 1,2,3"
+    },
+    {
+      "name": "comma tabular",
+      "input": {"data": [{"a": 1, "b": 2}]},
+      "expected": "data[1]{a,b}:\n  1,2"
+    }
+  ]
+}

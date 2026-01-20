@@ -1,0 +1,20 @@
+{
+  "description": "Tabular array decoding tests",
+  "tests": [
+    {
+      "name": "simple tabular",
+      "input": "users[2]{id,name}:\n  1,Alice\n  2,Bob",
+      "expected": {"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}
+    },
+    {
+      "name": "single row",
+      "input": "data[1]{x,y}:\n  10,20",
+      "expected": {"data": [{"x": 10, "y": 20}]}
+    },
+    {
+      "name": "three columns",
+      "input": "rows[1]{a,b,c}:\n  1,2,3",
+      "expected": {"rows": [{"a": 1, "b": 2, "c": 3}]}
+    }
+  ]
+}

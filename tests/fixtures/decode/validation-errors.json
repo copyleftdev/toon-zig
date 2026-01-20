@@ -1,0 +1,4 @@
+{
+  "description": "Validation error tests - currently skipped (error handling tests need fixture runner updates)",
+  "tests": []
+}
